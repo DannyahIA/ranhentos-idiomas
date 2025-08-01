@@ -1,49 +1,54 @@
-# Use PHP with built-in server for simplicity
-FROM php:8.2-cli
+# Use a minimal PHP image without FPM
+FROM alpine:3.18
+
+# Install PHP and dependencies (CLI only, no FPM)
+RUN apk add --no-cache \
+    php82 \
+    php82-cli \
+    php82-pdo \
+    php82-pdo_sqlite \
+    php82-pdo_pgsql \
+    php82-mbstring \
+    php82-xml \
+    php82-zip \
+    php82-curl \
+    php82-gd \
+    php82-bcmath \
+    php82-tokenizer \
+    php82-session \
+    php82-openssl \
+    php82-fileinfo \
+    php82-json \
+    curl \
+    sqlite \
+    bash
+
+# Create symlink for php command
+RUN ln -sf /usr/bin/php82 /usr/bin/php
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libpq-dev \
-    libzip-dev \
-    zip \
-    unzip \
-    sqlite3 \
-    libsqlite3-dev \
-    && docker-php-ext-configure zip \
-    && docker-php-ext-install pdo_pgsql pdo_sqlite mbstring exif pcntl bcmath gd zip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copy composer files first for better caching
+# Copy composer files first
 COPY composer.json composer.lock ./
 
-# Install PHP dependencies
+# Install dependencies
 RUN composer install --optimize-autoloader --no-dev --no-scripts
 
-# Copy application code
+# Copy application
 COPY . .
 
-# Create necessary directories and set permissions
+# Setup Laravel
 RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
-    && mkdir -p bootstrap/cache \
-    && mkdir -p database \
+    && mkdir -p bootstrap/cache database \
     && touch database/database.sqlite \
-    && chmod -R 775 storage bootstrap/cache database
+    && chmod -R 775 storage bootstrap/cache database \
+    && composer dump-autoload --optimize
 
-# Complete Composer installation
-RUN composer dump-autoload --optimize
-
-# Generate application key and run setup commands
+# Generate key and setup
 RUN php artisan key:generate --force \
     && php artisan config:cache \
     && php artisan route:cache \
@@ -51,8 +56,15 @@ RUN php artisan key:generate --force \
     && php artisan migrate --force \
     && php artisan db:seed --force
 
-# Expose port 80
+# Create a simple startup script that ensures the server starts properly
+RUN echo '#!/bin/bash' > /start.sh \
+    && echo 'echo "==> Starting Laravel development server..."' >> /start.sh \
+    && echo 'cd /var/www/html' >> /start.sh \
+    && echo 'exec php artisan serve --host=0.0.0.0 --port=80 --verbose' >> /start.sh \
+    && chmod +x /start.sh
+
+# Expose port
 EXPOSE 80
 
-# Start PHP built-in server
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=80"]
+# Start server
+CMD ["/start.sh"]

@@ -1,0 +1,89 @@
+# Alternative: Use Node.js to serve Laravel
+FROM node:18-alpine
+
+# Install PHP
+RUN apk add --no-cache \
+    php81 \
+    php81-cli \
+    php81-pdo \
+    php81-pdo_sqlite \
+    php81-pdo_pgsql \
+    php81-mbstring \
+    php81-xml \
+    php81-zip \
+    php81-curl \
+    php81-gd \
+    php81-bcmath \
+    php81-tokenizer \
+    php81-session \
+    php81-openssl \
+    php81-fileinfo \
+    curl \
+    sqlite \
+    composer
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy composer files
+COPY composer.json composer.lock ./
+
+# Install PHP dependencies
+RUN composer install --optimize-autoloader --no-dev --no-scripts
+
+# Copy application code
+COPY . .
+
+# Setup Laravel
+RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
+    && mkdir -p bootstrap/cache \
+    && mkdir -p database \
+    && touch database/database.sqlite \
+    && chmod -R 775 storage bootstrap/cache database \
+    && composer dump-autoload --optimize \
+    && php artisan key:generate --force \
+    && php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache \
+    && php artisan migrate --force \
+    && php artisan db:seed --force
+
+# Create simple HTTP server script
+RUN echo 'const express = require("express"); \
+const { spawn } = require("child_process"); \
+const app = express(); \
+const PORT = process.env.PORT || 80; \
+\
+// Start PHP server \
+const php = spawn("php", ["artisan", "serve", "--host=127.0.0.1", "--port=8000"], { \
+  cwd: "/var/www/html", \
+  stdio: "inherit" \
+}); \
+\
+// Proxy all requests to PHP \
+app.use((req, res) => { \
+  const proxy = require("http").request({ \
+    hostname: "127.0.0.1", \
+    port: 8000, \
+    path: req.url, \
+    method: req.method, \
+    headers: req.headers \
+  }, (phpRes) => { \
+    res.writeHead(phpRes.statusCode, phpRes.headers); \
+    phpRes.pipe(res); \
+  }); \
+  req.pipe(proxy); \
+}); \
+\
+app.listen(PORT, "0.0.0.0", () => { \
+  console.log(`Server running on port ${PORT}`); \
+});' > server.js
+
+# Install express
+RUN npm init -y && npm install express
+
+# Expose port
+EXPOSE 80
+
+# Start server
+CMD ["node", "server.js"]
