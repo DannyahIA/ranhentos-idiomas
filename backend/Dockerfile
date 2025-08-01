@@ -1,4 +1,3 @@
-# Etapa 1: Composer + PHP build
 FROM php:8.2-cli
 
 # Instala dependências
@@ -14,29 +13,29 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     && docker-php-ext-install pdo pdo_sqlite
 
-# Instala o Composer
+# Instala Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Define diretório da aplicação
 WORKDIR /var/www
 
-# Copia o projeto
+# Copia arquivos do projeto
 COPY . .
 
-# Instala dependências
+# Instala dependências PHP
 RUN composer install --no-dev --optimize-autoloader
 
+# Copia ou cria arquivo .env
+RUN if [ -f .env.example ]; then cp .env.example .env; else touch .env; fi
+
 # Gera chave da aplicação
-RUN php artisan key:generate
+RUN php artisan config:clear && php artisan key:generate
 
 # Cria banco de dados SQLite
-RUN mkdir -p /data && touch /data/database.sqlite
+RUN mkdir -p /data && touch /data/database.sqlite && chmod -R 777 /data
 
-# Ajusta permissões
-RUN chmod -R 777 /data
-
-# Porta de exposição (Render usa 10000)
+# Expondo a porta padrão do Render
 EXPOSE 10000
 
-# Comando de start
+# Comando de execução
 CMD php artisan migrate --force && php -S 0.0.0.0:10000 -t public
