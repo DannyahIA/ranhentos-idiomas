@@ -73,7 +73,7 @@ The project follows a modern microservices architecture with a clear separation 
 ## 📁 Project Structure
 
 ```
-mmtec/
+ranhentos-idiomas/
 ├── 📁 backend/                     # Laravel API
 │   ├── 📁 app/
 │   │   ├── 📁 Http/
@@ -110,8 +110,8 @@ mmtec/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/DannyahIA/mmtec.git
-cd mmtec
+git clone https://github.com/DannyahIA/ranhentos-idiomas.git
+cd ranhentos-idiomas
 
 # 2. Configure the backend
 cd backend
