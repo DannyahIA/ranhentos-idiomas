@@ -6,9 +6,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'https://ranhentos-idiomas-nazwabgzi-dannyahias-projects.vercel.app',
-    ],
+    'allowed_origins' => ['*'],
 
     'allowed_headers' => ['*'],
 
