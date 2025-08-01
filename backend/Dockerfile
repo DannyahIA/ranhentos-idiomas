@@ -1,6 +1,6 @@
 FROM php:8.2-cli
 
-# Instala dependências
+# Instala dependências do sistema e extensões PHP
 RUN apt-get update && apt-get install -y \
     unzip \
     git \
@@ -22,19 +22,21 @@ WORKDIR /var/www
 # Copia arquivos do projeto
 COPY . .
 
-# Instala dependências PHP
+# Instala dependências do Laravel
 RUN composer install --no-dev --optimize-autoloader
 
-# Copia ou cria arquivo .env
+# Garante que o .env exista
 RUN if [ -f .env.example ]; then cp .env.example .env; else touch .env; fi
 
-# Gera chave da aplicação
-RUN php artisan config:clear && php artisan key:generate
+# Gera chave da aplicação e configura cache
+RUN php artisan config:clear \
+ && php artisan key:generate \
+ && php artisan config:cache
 
-# Cria banco de dados SQLite
+# Cria banco SQLite e dá permissão
 RUN mkdir -p /data && touch /data/database.sqlite && chmod -R 777 /data
 
-# Expondo a porta padrão do Render
+# Expõe a porta que o Render exige
 EXPOSE 10000
 
 # Comando de execução
