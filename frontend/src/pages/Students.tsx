@@ -252,13 +252,13 @@ const Students: React.FC = () => {
                   >
                     Cancelar
                   </button>
-                  <button
+                    <button
                     type="submit"
                     disabled={createMutation.isPending || updateMutation.isPending}
-                    className="px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 transition-all font-medium shadow-lg"
-                  >
+                    className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all font-medium shadow-lg"
+                    >
                     {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
-                  </button>
+                    </button>
                 </div>
               </div>
             </form>
