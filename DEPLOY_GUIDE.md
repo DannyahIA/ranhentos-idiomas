@@ -1,13 +1,13 @@
-## 🚀 Guia de Deploy - Ranhentos Idiomas (v5 - FMP + Nginx)
+## 🚀 Guia de Deploy - Ranhentos Idiomas (v6 - SIMPLIFICADO)
 
 ## 📋 Resumo
 Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Vercel** (frontend) e **Render** (backend).
 
-⚠️ **ABORDAGEM FINAL - FPM FUNCIONAL:**
-- **Nginx + PHP-FPM:** Configuração profissional de produção
-- **Supervisor:** Gerencia ambos os serviços (Nginx + FPM)
-- **Portas corretas:** Nginx escuta na porta 80, FPM na 9000
-- **Docker otimizado:** Configuração testada e funcional
+⚠️ **ABORDAGEM v6 - SIMPLIFICADA:**
+- **Docker minimalista:** Apenas extensões PHP essenciais 
+- **Nginx + PHP-FPM:** Configuração otimizada para Render
+- **Build mais rápido:** Sem extensão GD para acelerar build
+- **Script de startup simples:** Logs claros e startup sequencial
 
 ## 🎯 Frontend no Vercel
 
@@ -33,10 +33,10 @@ Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Verc
 ## 🎯 Backend no Render
 
 ### 1. Preparação dos arquivos
-✅ **Dockerfile.render** com Nginx + PHP-FPM
-✅ **Supervisor** para gerenciar múltiplos processos  
-✅ **Configuração Nginx** otimizada para Laravel
-✅ **Docker multi-service** com controle adequado de portas
+✅ **Dockerfile.render v6** minimalista sem extensão GD
+✅ **Nginx + PHP-FPM** sem supervisor para simplicidade
+✅ **Startup script** otimizado com logs detalhados  
+✅ **Build mais rápido** com menos dependências
 ✅ **CORS** configurado para produção
 
 ### 2. Deploy no Render
@@ -50,7 +50,7 @@ Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Verc
    - **Dockerfile Path:** `backend/Dockerfile.render`
    - **Port:** `80`
 
-**🚨 IMPORTANTE:** Agora usamos Docker com configuração Nginx + FPM adequada!
+**🚨 IMPORTANTE:** Agora usamos **Docker v6 simplificado** - build mais rápido e confiável!
 
 ### 3. Variáveis de ambiente no Render
 Adicione estas variáveis na seção "Environment":
@@ -105,20 +105,25 @@ Após o deploy dos dois serviços:
 
 ## 🛠️ Troubleshooting
 
-### Problema: FPM com Nginx ✅ CONFIGURADO
-**✅ SOLUÇÃO IMPLEMENTADA:** Nginx + PHP-FPM com Supervisor!
+### Problema: Docker Build mais rápido ✅ CONFIGURADO
+**✅ SOLUÇÃO v6:** Dockerfile minimalista sem GD!
 
 **Configuração atual:**
 - Environment: **Docker** 
+- Build time: **~3-5 minutos** (vs 10+ anteriormente)
 - Nginx: escuta na porta 80 (web traffic)
 - PHP-FPM: escuta na porta 9000 (internal)
-- Supervisor: gerencia ambos os processos
+- Startup: sequencial com logs detalhados
 
 **Logs esperados:**
 ```
-==> Starting nginx
-==> Starting php-fpm
-==> Your service is live
+=== STARTUP DEBUG ===
+Starting PHP-FPM in background...
+PHP-FPM started, checking process:
+PHP-FPM OK
+Testing Nginx configuration:
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+Starting Nginx in foreground (this will keep container alive):
 ```
 
 ### Problema: Build falha
