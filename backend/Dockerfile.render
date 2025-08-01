@@ -1,5 +1,5 @@
-# Use the official PHP 8.2 image with Apache
-FROM php:8.2-apache
+# Use PHP with built-in server for simplicity
+FROM php:8.2-cli
 
 # Set working directory
 WORKDIR /var/www/html
@@ -21,9 +21,6 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo_pgsql pdo_sqlite mbstring exif pcntl bcmath gd zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
-
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -41,20 +38,7 @@ RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions sto
     && mkdir -p bootstrap/cache \
     && mkdir -p database \
     && touch database/database.sqlite \
-    && chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
     && chmod -R 775 storage bootstrap/cache database
-
-# Configure Apache DocumentRoot
-RUN echo '<VirtualHost *:80>\n\
-    DocumentRoot /var/www/html/public\n\
-    <Directory "/var/www/html/public">\n\
-        AllowOverride All\n\
-        Require all granted\n\
-    </Directory>\n\
-    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
-    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
-</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
 # Complete Composer installation
 RUN composer dump-autoload --optimize
@@ -63,10 +47,12 @@ RUN composer dump-autoload --optimize
 RUN php artisan key:generate --force \
     && php artisan config:cache \
     && php artisan route:cache \
-    && php artisan view:cache
+    && php artisan view:cache \
+    && php artisan migrate --force \
+    && php artisan db:seed --force
 
 # Expose port 80
 EXPOSE 80
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Start PHP built-in server
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=80"]

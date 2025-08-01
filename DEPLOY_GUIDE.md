@@ -1,13 +1,19 @@
-# 🚀 Guia de Deploy - Ranhentos Idiomas
+## 🚀 Guia de Deploy - Ranhentos Idiomas (v3 - Render Otimizado)
 
 ## 📋 Resumo
 Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Vercel** (frontend) e **Render** (backend).
+
+⚠️ **ÚLTIMAS CORREÇÕES:**
+- Backend: Dockerfile simplificado com PHP built-in server (mais compatível com Render)
+- Removido Apache para evitar conflitos FPM/Apache  
+- Configuração otimizada para detecção de portas HTTP
+- Frontend: vercel.json simplificado para React SPA
 
 ## 🎯 Frontend no Vercel
 
 ### 1. Preparação dos arquivos
 ✅ Configuração de variáveis de ambiente criada (`.env` e `.env.example`)
-✅ Arquivo `vercel.json` para roteamento SPA criado
+✅ Arquivo `vercel.json` corrigido para SPA routing
 ✅ Services atualizados para usar `process.env.REACT_APP_API_BASE_URL`
 
 ### 2. Deploy no Vercel
@@ -27,11 +33,11 @@ Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Verc
 ## 🎯 Backend no Render
 
 ### 1. Preparação dos arquivos
-✅ `Dockerfile.render` otimizado para produção criado
-✅ Configuração Apache criada
+✅ `Dockerfile.render` otimizado com PHP built-in server  
+✅ Removido Apache para compatibilidade com Render
 ✅ `.env.production` template criado
 ✅ CORS atualizado para usar variáveis de ambiente
-✅ Script de deploy criado
+✅ Dockerfile simplificado para melhor detecção de portas
 
 ### 2. Deploy no Render
 1. Acesse [render.com](https://render.com) e faça login com GitHub
@@ -52,7 +58,7 @@ APP_NAME=Ranhentos Idiomas
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://SEU-BACKEND-NAME.onrender.com
-APP_KEY=base64:GERE_UMA_NOVA_CHAVE
+APP_KEY=base64:UDQVTT2P/8VKvFsfIAwDKSAzjdFbxYPhiStF1hMXsjA=
 DB_CONNECTION=sqlite
 DB_DATABASE=/var/www/html/database/database.sqlite
 CORS_ALLOWED_ORIGINS=https://SEU-FRONTEND-NAME.vercel.app
@@ -62,7 +68,7 @@ CACHE_STORE=database
 QUEUE_CONNECTION=database
 ```
 
-**⚠️ IMPORTANTE:** Gere uma nova `APP_KEY` usando:
+**✅ APP_KEY já gerada:** Use a chave acima ou gere uma nova com:
 ```bash
 php artisan key:generate --show
 ```
