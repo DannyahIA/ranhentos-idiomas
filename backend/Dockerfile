@@ -1,25 +1,42 @@
-FROM php:8.2-fpm
+# Etapa 1: Composer + PHP build
+FROM php:8.2-cli
 
-# Instalar dependências do sistema
+# Instala dependências
 RUN apt-get update && apt-get install -y \
+    unzip \
     git \
     curl \
-    libpng-dev \
+    sqlite3 \
+    libsqlite3-dev \
+    libzip-dev \
+    zip \
     libonig-dev \
     libxml2-dev \
-    libpq-dev \
-    zip \
-    unzip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && docker-php-ext-install pdo pdo_sqlite
 
-# Instalar extensões PHP
-RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
+# Instala o Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Definir diretório de trabalho
+# Define diretório da aplicação
 WORKDIR /var/www
 
-# Configurar permissões
-RUN chown -R www-data:www-data /var/www
+# Copia o projeto
+COPY . .
+
+# Instala dependências
+RUN composer install --no-dev --optimize-autoloader
+
+# Gera chave da aplicação
+RUN php artisan key:generate
+
+# Cria banco de dados SQLite
+RUN mkdir -p /data && touch /data/database.sqlite
+
+# Ajusta permissões
+RUN chmod -R 777 /data
+
+# Porta de exposição (Render usa 10000)
+EXPOSE 10000
+
+# Comando de start
+CMD php artisan migrate --force && php -S 0.0.0.0:10000 -t public
