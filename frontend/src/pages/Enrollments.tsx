@@ -266,7 +266,7 @@ const Enrollments: React.FC = () => {
                                         <button
                                             type="submit"
                                             disabled={createMutation.isPending || updateMutation.isPending}
-                                            className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all font-medium shadow-lg"
+                                            className="px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 transition-all font-medium shadow-lg"
                                         >
                                             {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
                                         </button>
@@ -381,8 +381,8 @@ const Enrollments: React.FC = () => {
                                 key={page}
                                 onClick={() => setCurrentPage(page)}
                                 className={`px-2 sm:px-3 py-2 rounded text-sm sm:text-base mb-1 ${currentPage === page
-                                    ? 'bg-primary-600 text-white'
-                                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                                        ? 'bg-primary-600 text-white'
+                                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                     }`}
                             >
                                 {page}
