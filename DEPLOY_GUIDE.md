@@ -1,13 +1,13 @@
-## 🚀 Guia de Deploy - Ranhentos Idiomas (v3 - Render Otimizado)
+## 🚀 Guia de Deploy - Ranhentos Idiomas (v4 - Buildpack Native)
 
 ## 📋 Resumo
 Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Vercel** (frontend) e **Render** (backend).
 
-⚠️ **ÚLTIMAS CORREÇÕES:**
-- Backend: Dockerfile simplificado com PHP built-in server (mais compatível com Render)
-- Removido Apache para evitar conflitos FPM/Apache  
-- Configuração otimizada para detecção de portas HTTP
-- Frontend: vercel.json simplificado para React SPA
+⚠️ **SOLUÇÃO FINAL:**
+- **Abandono Docker:** Render buildpack nativo para PHP (mais estável)
+- **Procfile + post-deploy:** Configuração como Heroku
+- **Eliminação completa** de problemas FPM/Apache
+- **Frontend:** vercel.json testado e funcionando
 
 ## 🎯 Frontend no Vercel
 
@@ -33,11 +33,11 @@ Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Verc
 ## 🎯 Backend no Render
 
 ### 1. Preparação dos arquivos
-✅ `Dockerfile.render` otimizado com PHP built-in server  
-✅ Removido Apache para compatibilidade com Render
-✅ `.env.production` template criado
-✅ CORS atualizado para usar variáveis de ambiente
-✅ Dockerfile simplificado para melhor detecção de portas
+✅ **Procfile** criado para comando de start
+✅ **post-deploy.sh** para setup automático  
+✅ **.user.ini** para configuração PHP
+✅ **Buildpack nativo** em vez de Docker
+✅ **CORS** configurado para produção
 
 ### 2. Deploy no Render
 1. Acesse [render.com](https://render.com) e faça login com GitHub
@@ -46,9 +46,11 @@ Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Verc
 4. Configure:
    - **Name:** `ranhentos-backend` (ou nome de sua escolha)
    - **Root Directory:** `backend`
-   - **Environment:** `Docker`
-   - **Dockerfile Path:** `backend/Dockerfile.render`
-   - **Port:** `80`
+   - **Environment:** **PHP** (não Docker!)
+   - **Build Command:** `composer install --optimize-autoloader --no-dev`
+   - **Start Command:** `php artisan serve --host=0.0.0.0 --port=$PORT`
+
+**🚨 IMPORTANTE:** Escolha **PHP** como environment, NÃO Docker!
 
 ### 3. Variáveis de ambiente no Render
 Adicione estas variáveis na seção "Environment":
@@ -102,6 +104,28 @@ Após o deploy dos dois serviços:
 4. Monitore logs no Render em caso de erro
 
 ## 🛠️ Troubleshooting
+
+### Problema: FPM ainda detectado no Render ❌ OBSOLETO
+**✅ RESOLVIDO:** Agora usamos buildpack PHP nativo!
+
+**Nova configuração:**
+- Environment: **PHP** (não Docker)
+- Build Command: `composer install --optimize-autoloader --no-dev`
+- Start Command: `php artisan serve --host=0.0.0.0 --port=$PORT`
+
+### Problema: Build falha
+Se o build falhar:
+1. **Verifique PHP version no composer.json:**
+   ```json
+   "require": {
+       "php": "^8.1|^8.2"
+   }
+   ```
+
+2. **Logs detalhados:**
+   - Acesse Logs tab no Render
+   - Procure por erros do Composer
+   - Verifique se dependências estão corretas
 
 ### Problema: CORS Error
 - Verifique se `CORS_ALLOWED_ORIGINS` no Render está correto
