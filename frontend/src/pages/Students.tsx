@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit, Trash2, Mail, Phone, Calendar } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Plus, Search, Edit, Trash2, Mail, Phone, Calendar, Users } from 'lucide-react';
 import { studentService } from '../services/studentService';
 import { Student } from '../types';
+import { useApiMutation } from '../hooks/useApi';
+import Modal, { ModalBody, ModalFooter, ModalActions, Button } from '../components/Modal';
 
 const Students: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  
-  const queryClient = useQueryClient();
 
   // Buscar estudantes
   const { data: studentsData, isLoading, error } = useQuery({
@@ -19,31 +19,32 @@ const Students: React.FC = () => {
   });
 
   // Mutation para criar estudante
-  const createMutation = useMutation({
+  const createMutation = useApiMutation({
     mutationFn: studentService.createStudent,
+    successMessage: 'Estudante criado com sucesso!',
+    invalidateQueries: ['students'],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
       setShowForm(false);
     },
   });
 
   // Mutation para atualizar estudante
-  const updateMutation = useMutation({
+  const updateMutation = useApiMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Student> }) =>
       studentService.updateStudent(id, data),
+    successMessage: 'Estudante atualizado com sucesso!',
+    invalidateQueries: ['students'],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
       setEditingStudent(null);
       setShowForm(false);
     },
   });
 
   // Mutation para deletar estudante
-  const deleteMutation = useMutation({
+  const deleteMutation = useApiMutation({
     mutationFn: studentService.deleteStudent,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-    },
+    successMessage: 'Estudante excluído com sucesso!',
+    invalidateQueries: ['students'],
   });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -69,6 +70,11 @@ const Students: React.FC = () => {
     }
   };
 
+  const handleCloseModal = () => {
+    setShowForm(false);
+    setEditingStudent(null);
+  };
+
   // Filtrar estudantes baseado no termo de busca
   const filteredStudents = studentsData?.data ? 
     studentsData.data.filter(student =>
@@ -80,6 +86,12 @@ const Students: React.FC = () => {
     return (
       <div className="text-center py-8">
         <p className="text-red-600">Erro ao carregar estudantes</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }
@@ -88,209 +100,201 @@ const Students: React.FC = () => {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Estudantes</h1>
-            <p className="mt-2 text-gray-600">Gerencie todos os estudantes da escola</p>
+            <p className="mt-2 text-gray-600">Gerencie todos os estudantes do sistema</p>
           </div>
-          <button
+          <Button
             onClick={() => {
               setEditingStudent(null);
               setShowForm(true);
             }}
-            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400"
-            style={{ backgroundColor: '#2563eb', color: '#fff' }}
+            className="flex items-center justify-center"
           >
             <Plus className="w-4 h-4 mr-2" />
             Novo Estudante
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Search */}
       <div className="mb-6">
-        <div className="relative">
+        <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
             placeholder="Buscar estudantes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>
 
       {/* Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl">
-            <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-6">
-              <h2 className="text-xl font-semibold">
-                {editingStudent ? 'Editar Estudante' : 'Novo Estudante'}
-              </h2>
-              <p className="text-primary-100 text-sm mt-1">
-                {editingStudent ? 'Atualize as informações do estudante' : 'Preencha os dados do novo estudante'}
-              </p>
-            </div>
-            
-            <form onSubmit={handleSubmit}>
-              <div className="overflow-y-auto max-h-[calc(90vh-180px)] p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nome *</label>
-                    <input
-                      type="text"
-                      name="name"
-                      defaultValue={editingStudent?.name || ''}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                      placeholder="Digite o nome completo"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                    <input
-                      type="email"
-                      name="email"
-                      defaultValue={editingStudent?.email || ''}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                      placeholder="exemplo@email.com"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">CPF/Documento *</label>
-                    <input
-                      type="text"
-                      name="document_number"
-                      defaultValue={editingStudent?.document_number || ''}
-                      required
-                      placeholder="000.000.000-00"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
-                    <input
-                      type="text"
-                      name="phone"
-                      defaultValue={editingStudent?.phone || ''}
-                      placeholder="(11) 99999-9999"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Data de Nascimento</label>
-                    <input
-                      type="date"
-                      name="birth_date"
-                      defaultValue={editingStudent?.birth_date || ''}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">CEP</label>
-                    <input
-                      type="text"
-                      name="zip_code"
-                      defaultValue={editingStudent?.zip_code || ''}
-                      placeholder="00000-000"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
-                    <textarea
-                      name="address"
-                      defaultValue={editingStudent?.address || ''}
-                      rows={2}
-                      placeholder="Rua, número, complemento"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Cidade</label>
-                    <input
-                      type="text"
-                      name="city"
-                      defaultValue={editingStudent?.city || ''}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                    <input
-                      type="text"
-                      name="state"
-                      defaultValue={editingStudent?.state || ''}
-                      maxLength={2}
-                      placeholder="SP"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                    />
-                  </div>
-                </div>
+      <Modal
+        isOpen={showForm}
+        onClose={handleCloseModal}
+        title={editingStudent ? 'Editar Estudante' : 'Novo Estudante'}
+        subtitle={editingStudent ? 'Atualize as informações do estudante' : 'Preencha os dados do novo estudante'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit}>
+          <ModalBody>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nome *</label>
+                <input
+                  type="text"
+                  name="name"
+                  defaultValue={editingStudent?.name || ''}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Digite o nome completo"
+                />
               </div>
               
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowForm(false);
-                      setEditingStudent(null);
-                    }}
-                    className="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    Cancelar
-                  </button>
-                    <button
-                    type="submit"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                    className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all font-medium shadow-lg"
-                    >
-                    {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
-                    </button>
-                </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                <input
+                  type="email"
+                  name="email"
+                  defaultValue={editingStudent?.email || ''}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Digite o email"
+                />
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  defaultValue={editingStudent?.phone || ''}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data de Nascimento</label>
+                <input
+                  type="date"
+                  name="birth_date"
+                  defaultValue={editingStudent?.birth_date || ''}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">CPF</label>
+                <input
+                  type="text"
+                  name="document_number"
+                  defaultValue={editingStudent?.document_number || ''}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="000.000.000-00"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
+                <input
+                  type="text"
+                  name="address"
+                  defaultValue={editingStudent?.address || ''}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Rua, número, complemento"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Cidade</label>
+                <input
+                  type="text"
+                  name="city"
+                  defaultValue={editingStudent?.city || ''}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Nome da cidade"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                <input
+                  type="text"
+                  name="state"
+                  defaultValue={editingStudent?.state || ''}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="UF"
+                  maxLength={2}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">CEP</label>
+                <input
+                  type="text"
+                  name="zip_code"
+                  defaultValue={editingStudent?.zip_code || ''}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="00000-000"
+                />
+              </div>
+            </div>
+          </ModalBody>
+
+          <ModalFooter>
+            <ModalActions>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleCloseModal}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="success"
+                loading={createMutation.isPending || updateMutation.isPending}
+              >
+                Salvar
+              </Button>
+            </ModalActions>
+          </ModalFooter>
+        </form>
+      </Modal>
 
       {/* Students Grid */}
       {isLoading ? (
         <div className="text-center py-8">
-          <p>Carregando estudantes...</p>
+          <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-2 text-gray-600">Carregando estudantes...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredStudents.map((student) => (
-            <div key={student.id} className="bg-white rounded-lg shadow-md p-6">
+            <div key={student.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                  <span className="text-primary-600 font-bold text-lg">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-bold text-lg">
                     {student.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleEdit(student)}
-                    className="p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded"
+                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Editar estudante"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(student.id)}
-                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded"
+                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Excluir estudante"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -301,18 +305,18 @@ const Students: React.FC = () => {
               
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex items-center">
-                  <Mail className="w-4 h-4 mr-2" />
+                  <Mail className="w-4 h-4 mr-2 text-gray-400" />
                   {student.email}
                 </div>
                 {student.phone && (
                   <div className="flex items-center">
-                    <Phone className="w-4 h-4 mr-2" />
+                    <Phone className="w-4 h-4 mr-2 text-gray-400" />
                     {student.phone}
                   </div>
                 )}
                 {student.birth_date && (
                   <div className="flex items-center">
-                    <Calendar className="w-4 h-4 mr-2" />
+                    <Calendar className="w-4 h-4 mr-2 text-gray-400" />
                     {new Date(student.birth_date).toLocaleDateString('pt-BR')}
                   </div>
                 )}
@@ -330,9 +334,9 @@ const Students: React.FC = () => {
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`px-2 sm:px-3 py-2 rounded text-sm sm:text-base mb-1 ${
+                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                   currentPage === page
-                    ? 'bg-primary-600 text-white'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                 }`}
               >
@@ -340,6 +344,30 @@ const Students: React.FC = () => {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && filteredStudents.length === 0 && (
+        <div className="text-center py-12">
+          <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <Users className="w-12 h-12 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {searchTerm ? 'Nenhum estudante encontrado' : 'Nenhum estudante cadastrado'}
+          </h3>
+          <p className="text-gray-600 mb-6">
+            {searchTerm 
+              ? 'Tente ajustar os termos de busca.'
+              : 'Comece adicionando o primeiro estudante ao sistema.'
+            }
+          </p>
+          {!searchTerm && (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Estudante
+            </Button>
+          )}
         </div>
       )}
     </div>
