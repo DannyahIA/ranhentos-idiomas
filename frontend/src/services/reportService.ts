@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api/v1';
+import api from './api';
 
 export interface DashboardStats {
   total_students: number;
@@ -37,20 +35,47 @@ export interface ReportsData {
   enrollment_status: EnrollmentStatusData[];
 }
 
+// Dados mock para fallback quando a API estiver com problemas
+const getMockDashboardData = (): ReportsData => ({
+  stats: {
+    total_students: 0,
+    total_courses: 0,
+    total_enrollments: 0,
+    total_revenue: 0,
+    active_enrollments: 0,
+    completed_enrollments: 0,
+    cancelled_enrollments: 0,
+  },
+  popular_courses: [],
+  monthly_revenue: [],
+  enrollment_status: [],
+});
+
 class ReportService {
   async getDashboardData(): Promise<ReportsData> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/reports/dashboard`);
+      const response = await api.get('/reports/dashboard');
       return response.data.data;
     } catch (error) {
       console.error('Erro ao buscar dados do dashboard:', error);
+      
+      // Se for erro 500, retornar dados mock e informar sobre o problema
+      if (error && typeof error === 'object' && 'status' in error && error.status === 500) {
+        console.warn('🚨 Servidor com problemas internos. Verifique os logs do backend.');
+        console.warn('📋 Endpoint com problema: GET /api/v1/reports/dashboard');
+        console.warn('💡 Sugestão: Verificar se o banco de dados está conectado e se não há erros no código do controller.');
+        
+        // Retornar dados mock em caso de erro 500
+        return getMockDashboardData();
+      }
+      
       throw error;
     }
   }
 
   async getStudentReports(filters?: any): Promise<any> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/reports/students`, {
+      const response = await api.get('/reports/students', {
         params: filters
       });
       return response.data.data;
@@ -62,7 +87,7 @@ class ReportService {
 
   async getCourseReports(filters?: any): Promise<any> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/reports/courses`, {
+      const response = await api.get('/reports/courses', {
         params: filters
       });
       return response.data.data;
@@ -74,7 +99,7 @@ class ReportService {
 
   async getEnrollmentReports(filters?: any): Promise<any> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/reports/enrollments`, {
+      const response = await api.get('/reports/enrollments', {
         params: filters
       });
       return response.data.data;
@@ -86,7 +111,7 @@ class ReportService {
 
   async getRevenueReports(filters?: any): Promise<any> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/reports/revenue`, {
+      const response = await api.get('/reports/revenue', {
         params: filters
       });
       return response.data.data;

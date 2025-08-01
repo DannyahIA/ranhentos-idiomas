@@ -1,15 +1,17 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { reportService, ReportsData } from '../services/reportService';
 import { usePDFGenerator } from '../hooks/usePDFGenerator';
-import { Users, BookOpen, UserCheck, DollarSign, Download } from 'lucide-react';
+import { useApiQuery } from '../hooks/useApi';
+import { Users, BookOpen, UserCheck, DollarSign, Download, AlertCircle, RefreshCw } from 'lucide-react';
 
 const Reports: React.FC = () => {
     const { generateReportsPDF } = usePDFGenerator();
 
-    const { data: reportsData, isLoading, error } = useQuery<ReportsData>({
+    const { data: reportsData, isLoading, error, refetch } = useApiQuery<ReportsData>({
         queryKey: ['reports', 'dashboard'],
         queryFn: () => reportService.getDashboardData(),
+        enabled: true, // Sempre tentar buscar
+        staleTime: 1000 * 60 * 5, // 5 minutos antes de considerar stale
     });
 
     const handleGeneratePDF = async () => {
@@ -30,9 +32,49 @@ const Reports: React.FC = () => {
     }
 
     if (error) {
+        const isServerError = error && typeof error === 'object' && 'status' in error && error.status === 500;
+        
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="text-lg text-red-600">Erro ao carregar relatórios</div>
+                <div className="text-center max-w-md">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                        <AlertCircle className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {isServerError ? 'Problema no Servidor' : 'Erro ao carregar relatórios'}
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                        {isServerError 
+                            ? 'O servidor está com problemas internos. Este é um problema técnico que precisa ser resolvido no backend.'
+                            : 'Não foi possível conectar com o servidor. Verifique sua conexão ou tente novamente.'
+                        }
+                    </p>
+                    {isServerError && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-left">
+                            <p className="text-sm font-medium text-yellow-800 mb-1">📋 Informações Técnicas:</p>
+                            <ul className="text-xs text-yellow-700 space-y-1">
+                                <li>• Endpoint: GET /api/v1/reports/dashboard</li>
+                                <li>• Status: 500 Internal Server Error</li>
+                                <li>• Verifique os logs do servidor backend</li>
+                                <li>• Possível problema: conexão com banco de dados</li>
+                            </ul>
+                        </div>
+                    )}
+                    <div className="space-y-2">
+                        <button
+                            onClick={() => refetch()}
+                            className="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Tentar novamente
+                        </button>
+                        {isServerError && (
+                            <p className="text-xs text-gray-500">
+                                Se o problema persistir, contate o administrador do sistema.
+                            </p>
+                        )}
+                    </div>
+                </div>
             </div>
         );
     }
