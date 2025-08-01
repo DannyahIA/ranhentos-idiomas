@@ -1,13 +1,13 @@
-## 🚀 Guia de Deploy - Ranhentos Idiomas (v4 - Buildpack Native)
+## 🚀 Guia de Deploy - Ranhentos Idiomas (v5 - FMP + Nginx)
 
 ## 📋 Resumo
 Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Vercel** (frontend) e **Render** (backend).
 
-⚠️ **SOLUÇÃO FINAL:**
-- **Abandono Docker:** Render buildpack nativo para PHP (mais estável)
-- **Procfile + post-deploy:** Configuração como Heroku
-- **Eliminação completa** de problemas FPM/Apache
-- **Frontend:** vercel.json testado e funcionando
+⚠️ **ABORDAGEM FINAL - FPM FUNCIONAL:**
+- **Nginx + PHP-FPM:** Configuração profissional de produção
+- **Supervisor:** Gerencia ambos os serviços (Nginx + FPM)
+- **Portas corretas:** Nginx escuta na porta 80, FPM na 9000
+- **Docker otimizado:** Configuração testada e funcional
 
 ## 🎯 Frontend no Vercel
 
@@ -33,10 +33,10 @@ Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Verc
 ## 🎯 Backend no Render
 
 ### 1. Preparação dos arquivos
-✅ **Procfile** criado para comando de start
-✅ **post-deploy.sh** para setup automático  
-✅ **.user.ini** para configuração PHP
-✅ **Buildpack nativo** em vez de Docker
+✅ **Dockerfile.render** com Nginx + PHP-FPM
+✅ **Supervisor** para gerenciar múltiplos processos  
+✅ **Configuração Nginx** otimizada para Laravel
+✅ **Docker multi-service** com controle adequado de portas
 ✅ **CORS** configurado para produção
 
 ### 2. Deploy no Render
@@ -46,11 +46,11 @@ Este guia mostra como fazer o deploy do seu sistema de gestão escolar no **Verc
 4. Configure:
    - **Name:** `ranhentos-backend` (ou nome de sua escolha)
    - **Root Directory:** `backend`
-   - **Environment:** **PHP** (não Docker!)
-   - **Build Command:** `composer install --optimize-autoloader --no-dev`
-   - **Start Command:** `php artisan serve --host=0.0.0.0 --port=$PORT`
+   - **Environment:** **Docker**
+   - **Dockerfile Path:** `backend/Dockerfile.render`
+   - **Port:** `80`
 
-**🚨 IMPORTANTE:** Escolha **PHP** como environment, NÃO Docker!
+**🚨 IMPORTANTE:** Agora usamos Docker com configuração Nginx + FPM adequada!
 
 ### 3. Variáveis de ambiente no Render
 Adicione estas variáveis na seção "Environment":
@@ -105,27 +105,32 @@ Após o deploy dos dois serviços:
 
 ## 🛠️ Troubleshooting
 
-### Problema: FPM ainda detectado no Render ❌ OBSOLETO
-**✅ RESOLVIDO:** Agora usamos buildpack PHP nativo!
+### Problema: FPM com Nginx ✅ CONFIGURADO
+**✅ SOLUÇÃO IMPLEMENTADA:** Nginx + PHP-FPM com Supervisor!
 
-**Nova configuração:**
-- Environment: **PHP** (não Docker)
-- Build Command: `composer install --optimize-autoloader --no-dev`
-- Start Command: `php artisan serve --host=0.0.0.0 --port=$PORT`
+**Configuração atual:**
+- Environment: **Docker** 
+- Nginx: escuta na porta 80 (web traffic)
+- PHP-FPM: escuta na porta 9000 (internal)
+- Supervisor: gerencia ambos os processos
+
+**Logs esperados:**
+```
+==> Starting nginx
+==> Starting php-fpm
+==> Your service is live
+```
 
 ### Problema: Build falha
 Se o build falhar:
-1. **Verifique PHP version no composer.json:**
-   ```json
-   "require": {
-       "php": "^8.1|^8.2"
-   }
-   ```
-
-2. **Logs detalhados:**
+1. **Verifique logs do Docker build:**
    - Acesse Logs tab no Render
-   - Procure por erros do Composer
-   - Verifique se dependências estão corretas
+   - Procure por erros de instalação
+   - Verifique se todas as dependências foram instaladas
+
+2. **Problema de permissões:**
+   - Dockerfile configura www-data automaticamente
+   - Diretórios storage/ e bootstrap/cache com permissões corretas
 
 ### Problema: CORS Error
 - Verifique se `CORS_ALLOWED_ORIGINS` no Render está correto
